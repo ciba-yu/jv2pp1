@@ -1,209 +1,468 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
- <meta charset="UTF-8">
- <title>WebGL 手势控制爱心粒子</title>
- <style>
-     body { margin: 0; overflow: hidden; background-color: #000; }
-     #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
-     /* 隐藏摄像头视频流，只用于后台分析 */
-     .input_video { display: none; }
-     #loading {
-         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-         color: white; font-family: sans-serif; font-size: 24px; pointer-events: none; z-index: 10;
-     }
- </style>
- <!-- 引入 Three.js -->
- <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
- <!-- 引入 MediaPipe Hands -->
- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
- <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>你的名字 - 个人主页</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 图标 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js 用于技能雷达图 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 自定义配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5', // 主色调（蓝紫色）
+                        secondary: '#10B981', // 辅助色（绿色）
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            }
+        }
+    </style>
 </head>
-<body>
+<body class="bg-gradient-to-br from-light to-gray-100 min-h-screen font-sans text-dark">
+    <!-- 导航栏 -->
+    <nav class="sticky top-0 bg-white/80 backdrop-blur-md shadow-sm z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-primary">你的名字 <span class="text-secondary">Dev</span></a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#about" class="font-medium hover:text-primary transition-colors">关于我</a>
+                <a href="#skills" class="font-medium hover:text-primary transition-colors">技能</a>
+                <a href="#projects" class="font-medium hover:text-primary transition-colors">项目</a>
+                <a href="#experience" class="font-medium hover:text-primary transition-colors">经验</a>
+                <a href="#contact" class="font-medium hover:text-primary transition-colors">联系我</a>
+            </div>
+            <!-- 移动端菜单按钮 -->
+            <button class="md:hidden text-dark text-xl" id="menuBtn">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        <!-- 移动端菜单 -->
+        <div class="md:hidden hidden bg-white shadow-lg absolute w-full" id="mobileMenu">
+            <div class="container mx-auto px-4 py-2 flex flex-col space-y-3">
+                <a href="#about" class="py-2 font-medium hover:text-primary transition-colors">关于我</a>
+                <a href="#skills" class="py-2 font-medium hover:text-primary transition-colors">技能</a>
+                <a href="#projects" class="py-2 font-medium hover:text-primary transition-colors">项目</a>
+                <a href="#experience" class="py-2 font-medium hover:text-primary transition-colors">经验</a>
+                <a href="#contact" class="py-2 font-medium hover:text-primary transition-colors">联系我</a>
+            </div>
+        </div>
+    </nav>
 
-<div id="loading">正在加载模型与摄像头...<br>请允许摄像头权限</div>
-<div id="canvas-container"></div>
-<video class="input_video"></video>
+    <!-- 英雄区 -->
+    <section class="py-20 md:py-32">
+        <div class="container mx-auto px-4 flex flex-col md:flex-row items-center gap-10">
+            <div class="md:w-1/2">
+                <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-bold leading-tight text-shadow">
+                    你好，我是 <span class="text-primary">你的名字</span>
+                </h1>
+                <p class="text-xl md:text-2xl text-gray-600 mt-4 mb-8">
+                    前端/后端/全栈开发工程师 <!-- 需替换：你的职业 -->
+                </p>
+                <p class="text-gray-700 mb-8 max-w-lg">
+                    专注于构建高性能、用户友好的数字产品，拥有X年开发经验，擅长将复杂的技术转化为简单的解决方案。 <!-- 需替换：个人简介 -->
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#contact" class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors">
+                        联系我 <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                    <a href="https://github.com/你的用户名" target="_blank" class="border border-primary text-primary px-6 py-3 rounded-lg font-medium hover:bg-primary/5 transition-colors">
+                        <i class="fab fa-github mr-2"></i> GitHub
+                    </a>
+                </div>
+            </div>
+            <div class="md:w-1/2">
+                <!-- 头像区域（替换为你的头像链接） -->
+                <div class="relative w-64 h-64 md:w-80 md:h-80 mx-auto">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-full opacity-20"></div>
+                    <img src="https://picsum.photos/400/400" alt="你的头像" class="relative w-full h-full object-cover rounded-full border-4 border-white shadow-xl">
+                </div>
+            </div>
+        </div>
+    </section>
 
-<script>
- // --- 1. Three.js 场景初始化 ---
- const scene = new THREE.Scene();
- const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
- camera.position.z = 30;
+    <!-- 关于我 -->
+    <section id="about" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16">关于我</h2>
+            <div class="max-w-3xl mx-auto">
+                <p class="text-lg text-gray-700 mb-6 leading-relaxed">
+                    我是一名热爱编程的开发者，拥有X年的行业经验，主要专注于Web开发领域。 <!-- 需替换 -->
+                </p>
+                <p class="text-lg text-gray-700 mb-6 leading-relaxed">
+                    我擅长使用HTML/CSS/JavaScript、React、Vue、Node.js等技术栈构建现代化的Web应用，注重代码质量和用户体验。 <!-- 需替换 -->
+                </p>
+                <p class="text-lg text-gray-700 leading-relaxed">
+                    除了编程，我还喜欢分享技术知识，经常在博客/社区发表技术文章，也热衷于参与开源项目和技术交流。 <!-- 需替换 -->
+                </p>
+                
+                <!-- 个人信息卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10">
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm card-hover">
+                        <h3 class="font-bold text-lg mb-3 flex items-center">
+                            <i class="fas fa-user text-primary mr-3"></i> 基本信息
+                        </h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li><span class="font-medium">姓名：</span>你的名字</li>
+                            <li><span class="font-medium">职业：</span>开发工程师</li>
+                            <li><span class="font-medium">邮箱：</span>your-email@example.com</li> <!-- 需替换 -->
+                        </ul>
+                    </div>
+                    <div class="bg-gray-50 p-6 rounded-lg shadow-sm card-hover">
+                        <h3 class="font-bold text-lg mb-3 flex items-center">
+                            <i class="fas fa-heart text-primary mr-3"></i> 兴趣爱好
+                        </h3>
+                        <ul class="space-y-2 text-gray-700">
+                            <li><span class="font-medium">技术：</span>前端框架、云原生、自动化</li> <!-- 需替换 -->
+                            <li><span class="font-medium">休闲：</span>阅读、跑步、摄影</li> <!-- 需替换 -->
+                            <li><span class="font-medium">学习：</span>持续学习新技术、开源贡献</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
- const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
- renderer.setSize(window.innerWidth, window.innerHeight);
- document.getElementById('canvas-container').appendChild(renderer.domElement);
+    <!-- 技能展示 -->
+    <section id="skills" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16">我的技能</h2>
+            <div class="flex flex-col md:flex-row gap-10 items-center">
+                <!-- 雷达图 -->
+                <div class="md:w-1/2 h-80">
+                    <canvas id="skillsChart"></canvas>
+                </div>
+                <!-- 技能标签 -->
+                <div class="md:w-1/2">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">HTML5</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">CSS3</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">JavaScript</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">React</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">Vue</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">Node.js</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">Python</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">MySQL</span>
+                        <span class="bg-primary/10 text-primary px-4 py-2 rounded-full text-center">Git</span>
+                        <!-- 可添加更多技能标签 -->
+                    </div>
+                    <div class="mt-8">
+                        <h3 class="font-bold text-xl mb-4">技能说明</h3>
+                        <p class="text-gray-700">
+                            我在前端开发领域有扎实的基础，能够独立完成从需求分析到产品上线的全流程开发。同时具备后端开发能力，能够搭建完整的前后端分离项目。 <!-- 需替换 -->
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
- // --- 2. 创建爱心粒子系统 ---
- const particleCount = 3000; // 粒子数量
- const geometry = new THREE.BufferGeometry();
- const positions = new Float32Array(particleCount * 3);
- const targetPositions = new Float32Array(particleCount * 3); // 存储爱心形状的目标位置
- const randomPositions = new Float32Array(particleCount * 3); // 存储散开时的随机位置
+    <!-- 项目展示 -->
+    <section id="projects" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16">我的项目</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- 项目卡片1（需替换） -->
+                <div class="bg-gray-50 rounded-xl overflow-hidden shadow-sm card-hover">
+                    <img src="https://picsum.photos/600/400?random=1" alt="项目截图" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <h3 class="font-bold text-xl mb-2">项目名称1</h3>
+                        <p class="text-gray-600 mb-4">项目简短描述：基于React开发的电商前端系统，实现了商品展示、购物车、支付等核心功能。</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">React</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">Redux</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">Ant Design</span>
+                        </div>
+                        <div class="flex gap-4">
+                            <a href="https://github.com/你的用户名/项目名" target="_blank" class="text-primary hover:underline flex items-center">
+                                <i class="fab fa-github mr-1"></i> 源码
+                            </a>
+                            <a href="https://项目演示地址.com" target="_blank" class="text-secondary hover:underline flex items-center">
+                                <i class="fas fa-external-link-alt mr-1"></i> 演示
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- 项目卡片2（需替换） -->
+                <div class="bg-gray-50 rounded-xl overflow-hidden shadow-sm card-hover">
+                    <img src="https://picsum.photos/600/400?random=2" alt="项目截图" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <h3 class="font-bold text-xl mb-2">项目名称2</h3>
+                        <p class="text-gray-600 mb-4">项目简短描述：基于Node.js开发的后端API服务，提供用户认证、数据管理等接口，支持RESTful规范。</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">Node.js</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">Express</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">MySQL</span>
+                        </div>
+                        <div class="flex gap-4">
+                            <a href="https://github.com/你的用户名/项目名" target="_blank" class="text-primary hover:underline flex items-center">
+                                <i class="fab fa-github mr-1"></i> 源码
+                            </a>
+                            <a href="https://项目演示地址.com" target="_blank" class="text-secondary hover:underline flex items-center">
+                                <i class="fas fa-external-link-alt mr-1"></i> 演示
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- 项目卡片3（需替换） -->
+                <div class="bg-gray-50 rounded-xl overflow-hidden shadow-sm card-hover">
+                    <img src="https://picsum.photos/600/400?random=3" alt="项目截图" class="w-full h-48 object-cover">
+                    <div class="p-6">
+                        <h3 class="font-bold text-xl mb-2">项目名称3</h3>
+                        <p class="text-gray-600 mb-4">项目简短描述：个人博客系统，基于VuePress搭建，支持Markdown编辑、分类归档、搜索等功能。</p>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">Vue</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">VuePress</span>
+                            <span class="text-xs bg-gray-200 px-2 py-1 rounded">Markdown</span>
+                        </div>
+                        <div class="flex gap-4">
+                            <a href="https://github.com/你的用户名/项目名" target="_blank" class="text-primary hover:underline flex items-center">
+                                <i class="fab fa-github mr-1"></i> 源码
+                            </a>
+                            <a href="https://项目演示地址.com" target="_blank" class="text-secondary hover:underline flex items-center">
+                                <i class="fas fa-external-link-alt mr-1"></i> 演示
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
- // 爱心方程函数
- function getHeartPosition(t, scale = 1) {
-     const x = 16 * Math.pow(Math.sin(t), 3);
-     const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
-     const z = 0; 
-     return { x: x * scale, y: y * scale, z: z * scale };
- }
+    <!-- 经验时间轴 -->
+    <section id="experience" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16">工作/学习经验</h2>
+            <div class="max-w-3xl mx-auto relative">
+                <!-- 时间轴竖线 -->
+                <div class="absolute left-0 md:left-1/2 top-0 bottom-0 w-0.5 bg-primary/20 transform md:-translate-x-1/2"></div>
+                
+                <!-- 经验项1（需替换） -->
+                <div class="relative mb-12 flex flex-col md:flex-row">
+                    <div class="md:w-1/2 md:pr-8 mb-4 md:mb-0 text-right">
+                        <h3 class="font-bold text-xl text-primary">公司/学校名称1</h3>
+                        <p class="text-gray-500">20XX.XX - 20XX.XX</p>
+                        <p class="font-medium mt-1">职位/学历：前端开发工程师</p>
+                    </div>
+                    <div class="md:w-1/2 md:pl-8">
+                        <div class="bg-white p-6 rounded-lg shadow-sm card-hover">
+                            <p class="text-gray-700">
+                                主要负责公司核心产品的前端开发与维护，参与从需求评审到上线的全流程，优化页面加载速度30%，提升用户体验。
+                            </p>
+                        </div>
+                    </div>
+                    <!-- 时间轴圆点 -->
+                    <div class="absolute left-0 md:left-1/2 top-4 w-4 h-4 bg-primary rounded-full transform md:-translate-x-1/2"></div>
+                </div>
+                
+                <!-- 经验项2（需替换） -->
+                <div class="relative mb-12 flex flex-col md:flex-row">
+                    <div class="md:w-1/2 md:pr-8 mb-4 md:mb-0 text-right md:order-2">
+                        <h3 class="font-bold text-xl text-primary">公司/学校名称2</h3>
+                        <p class="text-gray-500">20XX.XX - 20XX.XX</p>
+                        <p class="font-medium mt-1">职位/学历：后端开发实习生</p>
+                    </div>
+                    <div class="md:w-1/2 md:pl-8 md:order-1">
+                        <div class="bg-white p-6 rounded-lg shadow-sm card-hover">
+                            <p class="text-gray-700">
+                                参与公司内部系统的后端接口开发，使用Node.js+Express搭建API服务，完成数据校验、权限控制等功能，累计提交代码XX行。
+                            </p>
+                        </div>
+                    </div>
+                    <!-- 时间轴圆点 -->
+                    <div class="absolute left-0 md:left-1/2 top-4 w-4 h-4 bg-primary rounded-full transform md:-translate-x-1/2"></div>
+                </div>
+            </div>
+        </div>
+    </section>
 
- for (let i = 0; i < particleCount; i++) {
-     // 生成爱心形状的目标点
-     // 为了让爱心立体一点，我们随机分布t，并在Z轴加一点随机扰动
-     const t = Math.random() * Math.PI * 2;
-     const scale = 0.5; 
-     const heartPos = getHeartPosition(t, scale);
-     
-     // 填充爱心内部 (随机缩放)
-     const r = Math.sqrt(Math.random()); 
-     
-     targetPositions[i * 3] = heartPos.x * r;
-     targetPositions[i * 3 + 1] = heartPos.y * r;
-     targetPositions[i * 3 + 2] = (Math.random() - 0.5) * 5; // Z轴厚度
+    <!-- 联系方式 -->
+    <section id="contact" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl md:text-4xl font-bold text-center mb-16">联系我</h2>
+            <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10">
+                <!-- 联系信息 -->
+                <div>
+                    <h3 class="font-bold text-xl mb-6">随时欢迎交流</h3>
+                    <div class="space-y-6">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl mr-4">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">邮箱</h4>
+                                <a href="mailto:your-email@example.com" class="text-gray-600 hover:text-primary">your-email@example.com</a> <!-- 需替换 -->
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl mr-4">
+                                <i class="fab fa-github"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">GitHub</h4>
+                                <a href="https://github.com/你的用户名" target="_blank" class="text-gray-600 hover:text-primary">github.com/你的用户名</a> <!-- 需替换 -->
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl mr-4">
+                                <i class="fab fa-weixin"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">微信</h4>
+                                <p class="text-gray-600">your-wechat-id</p> <!-- 需替换 -->
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl mr-4">
+                                <i class="fab fa-linkedin"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium">LinkedIn</h4>
+                                <a href="https://linkedin.com/in/你的用户名" target="_blank" class="text-gray-600 hover:text-primary">linkedin.com/in/你的用户名</a> <!-- 需替换 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 联系表单（静态展示，如需功能需后端支持） -->
+                <div>
+                    <h3 class="font-bold text-xl mb-6">发送消息</h3>
+                    <form class="space-y-4">
+                        <div>
+                            <label for="name" class="block text-gray-700 mb-2">姓名</label>
+                            <input type="text" id="name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入你的姓名">
+                        </div>
+                        <div>
+                            <label for="email" class="block text-gray-700 mb-2">邮箱</label>
+                            <input type="email" id="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入你的邮箱">
+                        </div>
+                        <div>
+                            <label for="message" class="block text-gray-700 mb-2">消息内容</label>
+                            <textarea id="message" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary" placeholder="请输入你想对我说的话"></textarea>
+                        </div>
+                        <button type="submit" class="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors w-full">
+                            发送消息 <i class="fas fa-paper-plane ml-2"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
 
-     // 生成散开的随机位置 (爆炸效果)
-     randomPositions[i * 3] = (Math.random() - 0.5) * 100;
-     randomPositions[i * 3 + 1] = (Math.random() - 0.5) * 60;
-     randomPositions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-10">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-4">© 2025 你的名字 - 个人主页</p>
+            <div class="flex justify-center space-x-6 mb-6">
+                <a href="https://github.com/你的用户名" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fab fa-github text-xl"></i>
+                </a>
+                <a href="https://twitter.com/你的用户名" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fab fa-twitter text-xl"></i>
+                </a>
+                <a href="https://linkedin.com/in/你的用户名" target="_blank" class="text-gray-400 hover:text-white transition-colors">
+                    <i class="fab fa-linkedin text-xl"></i>
+                </a>
+            </div>
+            <p class="text-gray-500 text-sm">Made with ❤️ by 你的名字</p>
+        </div>
+    </footer>
 
-     // 初始位置设为散开状态
-     positions[i * 3] = randomPositions[i * 3];
-     positions[i * 3 + 1] = randomPositions[i * 3 + 1];
-     positions[i * 3 + 2] = randomPositions[i * 3 + 2];
- }
+    <!-- 脚本 -->
+    <script>
+        // 移动端菜单切换
+        const menuBtn = document.getElementById('menuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        menuBtn.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            // 切换图标
+            const icon = menuBtn.querySelector('i');
+            if (icon.classList.contains('fa-bars')) {
+                icon.classList.replace('fa-bars', 'fa-times');
+            } else {
+                icon.classList.replace('fa-times', 'fa-bars');
+            }
+        });
 
- geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80, // 偏移量适配导航栏
+                        behavior: 'smooth'
+                    });
+                    // 关闭移动端菜单
+                    mobileMenu.classList.add('hidden');
+                    menuBtn.querySelector('i').classList.replace('fa-times', 'fa-bars');
+                }
+            });
+        });
 
- // 粒子材质
- const material = new THREE.PointsMaterial({
-     color: 0xff69b4, // 热粉色
-     size: 0.4,
-     transparent: true,
-     opacity: 0.8,
-     blending: THREE.AdditiveBlending
- });
-
- const particles = new THREE.Points(geometry, material);
- scene.add(particles);
-
- // --- 3. 交互逻辑变量 ---
- let gatherFactor = 0; // 0 = 完全散开, 1 = 完全聚合成爱心
- let targetGatherFactor = 0; // 目标聚合度，由手势控制
-
- // --- 4. MediaPipe Hands 配置 ---
- const videoElement = document.getElementsByClassName('input_video')[0];
-
- function onResults(results) {
-     document.getElementById('loading').style.display = 'none';
-
-     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-         const landmarks = results.multiHandLandmarks[0];
-
-         // 计算手掌开合程度
-         // 简单算法：计算拇指指尖(4)与其他四指指尖(8,12,16,20)到手腕(0)的平均距离
-         const wrist = landmarks[0];
-         const fingerTips = [4, 8, 12, 16, 20];
-         let totalDist = 0;
-
-         fingerTips.forEach(idx => {
-             const tip = landmarks[idx];
-             const dist = Math.sqrt(
-                 Math.pow(tip.x - wrist.x, 2) + 
-                 Math.pow(tip.y - wrist.y, 2)
-             );
-             totalDist += dist;
-         });
-
-         const avgDist = totalDist / 5;
-
-         // 经验阈值：
-         // 握拳时，指尖距离手腕很近 (avgDist 约 0.1 - 0.2)
-         // 张开时，指尖距离手腕较远 (avgDist 约 0.4 - 0.6)
-         // 我们做一个映射：握拳(distance small) -> 聚合(factor 1), 张开 -> 散开(factor 0)
-         
-         // 动态调整这些阈值以适应摄像头的距离
-         const closeThreshold = 0.25; 
-         const openThreshold = 0.5;
-
-         let normalized = (avgDist - closeThreshold) / (openThreshold - closeThreshold);
-         normalized = 1 - Math.min(Math.max(normalized, 0), 1); // 反转：距离越小(握拳)，值越大(1)
-
-         targetGatherFactor = normalized; 
-
-     } else {
-         // 如果没有检测到手，默认缓慢散开
-         targetGatherFactor = 0;
-     }
- }
-
- const hands = new Hands({locateFile: (file) => {
-     return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
- }});
-
- hands.setOptions({
-     maxNumHands: 1,
-     modelComplexity: 1,
-     minDetectionConfidence: 0.5,
-     minTrackingConfidence: 0.5
- });
-
- hands.onResults(onResults);
-
- const cameraUtils = new Camera(videoElement, {
-     onFrame: async () => {
-         await hands.send({image: videoElement});
-     },
-     width: 640,
-     height: 480
- });
- cameraUtils.start();
-
- // --- 5. 动画循环 ---
- function animate() {
-     requestAnimationFrame(animate);
-
-     // 粒子自身旋转动画
-     particles.rotation.y += 0.002;
-
-     // 平滑过渡聚合系数 (Lerp)
-     gatherFactor += (targetGatherFactor - gatherFactor) * 0.05;
-
-     // 更新粒子位置
-     const posAttr = particles.geometry.attributes.position;
-     const currentPositions = posAttr.array;
-
-     for (let i = 0; i < particleCount; i++) {
-         const idx = i * 3;
-         
-         // 目标位置插值：从 randomPositions 过渡到 targetPositions
-         const tx = randomPositions[idx] + (targetPositions[idx] - randomPositions[idx]) * gatherFactor;
-         const ty = randomPositions[idx+1] + (targetPositions[idx+1] - randomPositions[idx+1]) * gatherFactor;
-         const tz = randomPositions[idx+2] + (targetPositions[idx+2] - randomPositions[idx+2]) * gatherFactor;
-
-         // 增加一点动态浮动效果
-         currentPositions[idx] += (tx - currentPositions[idx]) * 0.1;
-         currentPositions[idx+1] += (ty - currentPositions[idx+1]) * 0.1;
-         currentPositions[idx+2] += (tz - currentPositions[idx+2]) * 0.1;
-     }
-
-     posAttr.needsUpdate = true;
-     renderer.render(scene, camera);
- }
-
- animate();
-
- // 窗口大小调整适配
- window.addEventListener('resize', () => {
-     camera.aspect = window.innerWidth / window.innerHeight;
-     camera.updateProjectionMatrix();
-     renderer.setSize(window.innerWidth, window.innerHeight);
- });
-</script>
+        // 技能雷达图
+        window.addEventListener('load', () => {
+            const ctx = document.getElementById('skillsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['HTML/CSS', 'JavaScript', 'React/Vue', 'Node.js', 'Python', '数据库', 'Git'], // 需替换：技能维度
+                    datasets: [{
+                        label: '技能熟练度',
+                        data: [90, 85, 80, 75, 70, 75, 85], // 需替换：对应熟练度（0-100）
+                        backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        pointBackgroundColor: 'rgba(79, 70, 229, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(79, 70, 229, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true,
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        });
+    </script>
 </body>
 </html>
-
